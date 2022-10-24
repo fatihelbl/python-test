@@ -1,8 +1,5 @@
 import argparse
-from ctypes import sizeof
-from multiprocessing.connection import wait
-from time import sleep
-from typing import Counter
+import time
 import serial
 import workk
 
@@ -23,7 +20,6 @@ ser.open()
 packet_state= workk.state_start_byte
 
 def ACK_process(answer):
-    byte_array=[]
     global packet_state
  
     match packet_state:
@@ -31,14 +27,49 @@ def ACK_process(answer):
         case workk.state_start_byte:
             if answer[workk.state_start_byte] == workk.start_byte:
                 packet_state = workk.state_checksum
-                ACK_flag = 1
+  
 
         case workk.state_checksum:
             checksum_index = len(answer)-1
-            if ACK_flag and answer[checksum_index] == workk.crc16_generator(answer):
-                print("crc")
-                 
+
+            if answer[checksum_index] == workk.ACK_CRC:
+                ACK_state_flag = 1
             
+            elif answer[checksum_index] == workk.RJT_CRC:
+                RJT_state_flag = 1
+
+            else:
+                print("TMT")    
+        case workk.state_output:
+            if ACK_state_flag:
+                print("ack")
+            elif RJT_state_flag:
+                print("rjt")    
+
+           # if ACK_flag and answer[checksum_index] == workk.crc16_generator(answer):
+                
+def send_version(device_id):
+    byte=[]
+    crc =[]
+    byte.append(workk.start_byte)
+    byte.append(device_id)
+    #command ıd
+    #packet no
+    #packet size
+    byte= byte + workk.payload # 1.8.2 17
+    crc = workk.crc16_generator(byte)        
+    byte = byte + crc
+    ser.write(byte)
+
+def read_ack():  
+    time.sleep(0.5)    
+    if( ser.in_waiting() == workk.BTL_LENGHT):
+        read_btl = ser.read(workk.BTL_LENGHT)
+        loop=0
+        while(workk.loop >= loop):
+            ACK_process(read_btl)
+            loop += 1
+    exit()    
 
 #@brief Parse incoming data to the function into Intel HEX format.
 #@param line
@@ -85,7 +116,6 @@ def parse(line):
 #@return None 
 def send_uart(data,address,byte_count,checksum_count):
     bytess = []
-
     if(byte_count):
         bytess.append(byte_count)
 
@@ -120,13 +150,10 @@ def type_parser(rec_type_ad):
         return 'end'
  
 #main
-if( ser.in_waiting() == workk.BTL_LENGHT):
-    read_btl = ser.read(workk.BTL_LENGHT)
-    loop=0
-    while(workk.loop >= loop):
-        ACK_process(read_btl)
-        loop += 1
-    exit()
+for i in range(15):
+    send_version(i)
+    read_ack()
+
     
 f=open('hex_file.hex', 'rb')
 lines=f.readlines()

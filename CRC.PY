@@ -1,5 +1,4 @@
-def crc16_generator(data):
-    """
+"""
         CRC-16-CCITT Algorithm
         Parameters
         ----------
@@ -11,6 +10,9 @@ def crc16_generator(data):
             (e.g)
             crc = 0xc0c1 -> [0xc1, 0xc0]
     """
+arr2=[76,233]
+def crc16_generator(data):
+    
     data = bytearray(data)
     crc = 0xFFFF
     for b in data:
@@ -38,4 +40,6 @@ def crc16_generator(data):
     return arr"""""
 
 x = crc16_generator([0xFD, 0x00, 0x97, 0x03, 0x01, 0x00, 0x05, 0x00, 0x01, 0x08, 0x02, 0x11])
-print(x,"aa")
+print(x,"")
+if(x==arr2):
+    print("ss")

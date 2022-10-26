@@ -1,8 +1,12 @@
 import argparse
+from cgi import test
+import enum
+from pickle import TRUE
 import time
 import serial
 import workk
-
+import constanst
+from enum import Enum
 parser = argparse.ArgumentParser()
 parser.add_argument('--port', type=str,default=0)
 parser.add_argument('--baudrate',type=str,default=0)
@@ -17,30 +21,44 @@ ser.open()
 #port='COM9'
 #ser=serial.Serial(port, baudrate=115200,timeout=5)
 
-packet_state= workk.state_start_byte
+class test():
+
+    def start_byte():
+        return constanst.start_byte
+    def ACK_start_byte():
+        return constanst.ACK_start_byte
+    def ACK_state_start_byte():
+        return constanst.state_start_byte
+    def ACK_command_ıd():
+        return constanst.command_ıd
+    def BTL_lenght_func():
+        return workk.BTL_LENGHT
+
+packet_state= constanst.state_start_byte
 
 def ACK_process(answer):
     global packet_state
- 
+    global ACK_state_flag
+    global RJT_state_flag
     match packet_state:
 
-        case workk.state_start_byte:
-            if answer[workk.state_start_byte] == workk.start_byte:
-                packet_state = workk.state_checksum
+        case constanst.state_start_byte:
+            if answer[constanst.state_start_byte] == constanst.start_byte:
+                packet_state = constanst.state_checksum
   
 
-        case workk.state_checksum:
+        case constanst.state_checksum:
             checksum_index = len(answer)-1
 
-            if answer[checksum_index] == workk.ACK_CRC:
+            if answer[checksum_index] == constanst.ACK_CRC:
                 ACK_state_flag = 1
             
-            elif answer[checksum_index] == workk.RJT_CRC:
+            elif answer[checksum_index] == constanst.RJT_CRC:
                 RJT_state_flag = 1
 
             else:
                 print("TMT")    
-        case workk.state_output:
+        case constanst.state_output:
             if ACK_state_flag:
                 print("ack")
             elif RJT_state_flag:
@@ -48,25 +66,31 @@ def ACK_process(answer):
 
            # if ACK_flag and answer[checksum_index] == workk.crc16_generator(answer):
                 
-def send_version(device_id):
-    byte=[]
+def send_version(device_id,packet_size,hex_data,packet_no):
+    byte=[constanst.start_byte ]
     crc =[]
-    byte.append(workk.start_byte)
+    print(byte,"start")
     byte.append(device_id)
-    #command ıd
-    #packet no
-    #packet size
-    byte= byte + workk.payload # 1.8.2 17
-    crc = workk.crc16_generator(byte)        
-    byte = byte + crc
-    ser.write(byte)
+    print(byte,"device_id")
+    byte.append(constanst.command_ıd)
+    byte.append(packet_no)
+    byte.append(packet_size)
+    #byte= byte+ constanst.payload  # 1.8.2 17
+    byte= byte+ hex_data
+    #print(byte,"ack kısmı byte")
+    #byte.append(packet_size)
+    #print(byte,"packet SİZE")
+    crc = constanst.crc16_generator(byte)        
+    byte = byte +crc
+    print(byte,"son")
+    #!ser.write(byte)
 
 def read_ack():  
     time.sleep(0.5)    
-    if( ser.in_waiting() == workk.BTL_LENGHT):
-        read_btl = ser.read(workk.BTL_LENGHT)
+    if( ser.inWaiting() == constanst.BTL_LENGHT ):
+        read_btl = ser.read(constanst.BTL_LENGHT)
         loop=0
-        while(workk.loop >= loop):
+        while(constanst.loop >= loop):
             ACK_process(read_btl)
             loop += 1
     exit()    
@@ -75,7 +99,7 @@ def read_ack():
 #@param line
 #@return None  
 def parse(line):
-    
+
     count=1
     byte_count_value =line[count:count+2]    
     byte_count = int (byte_count_value, base=16)
@@ -101,15 +125,15 @@ def parse(line):
         checksum= line[count:count+2]
         checksum_count = int(line[count:count + 2], base=16)
         print("checksum", checksum, "checksum count", checksum_count)
-
-        send_uart(data, address ,byte_count, checksum_count)
-
+        return send_uart(data, address ,byte_count, checksum_count)
+        
     if(rec_type == 'end'):
         count = count + 2
         print("Not data,End of file!")
         checksum= line[count:count + 2]
         checksum_count = int(line[count:count + 2],base = 16)
         print("checksum", checksum, "checksum count", checksum_count)
+        return send_uart(address ,byte_count, checksum_count)
 
 #@brief Sending data UART.
 #@param data,address,byte_count
@@ -135,8 +159,21 @@ def send_uart(data,address,byte_count,checksum_count):
         bytess.append(checksum_count)
     
     print(bytess)
-    ser.write(bytess)
+    #ser.write(bytess)
+    return bytess
 
+def create_packet(device_id,hex_data,packet_size):
+    btl_packet=[]
+    crc =[]
+    btl_packet.append(constanst.start_byte)
+    btl_packet.append(device_id)
+    btl_packet.append(constanst.command_ıd)
+    #packet no
+    btl_packet.append(packet_size)
+    btl_packet= btl_packet.extend(hex_data)  # 1.8.2 17
+    crc = constanst.crc16_generator(btl_packet)        
+    btl_packet = btl_packet +crc
+    ser.write(btl_packet)
 
 #@brief Parses record type data in Intel HEX format.
 #@param rec_type_ad
@@ -148,22 +185,43 @@ def type_parser(rec_type_ad):
     
     if(rec_type_ad == '01'):
         return 'end'
- 
-#main
-for i in range(15):
-    send_version(i)
-    read_ack()
-
     
+#main
+hex_data =[]   
 f=open('hex_file.hex', 'rb')
 lines=f.readlines()
 lines_count = len(lines)
-print(lines_count, "len")
+print(lines_count,"lines_count")
+packet_no=0
+for line in lines :        
+            line = line.decode()
+            hex_data = parse(line)
+            
+            print(hex_data,"hex_data")
+            send_version(1,lines_count,hex_data,packet_no)
+            packet_no+=1  
+            #create_packet(id,hex_data,lines_count)
+          
+"""""
+for id in range(15):    
+    send_version(id,lines_count,hex_data)
+    read_ack()
+    if ACK_state_flag:
+        for line in lines :        
+            line = line.decode()
+            hex_data = parse(line)
+            print(hex_data,"hex_data")
+            create_packet(id,hex_data,lines_count)
+"""""            
+
+
+"""""
 for line in lines:
    
     line = line.decode()
     print(line)
     parse(line)
+"""""
 
 
 """"

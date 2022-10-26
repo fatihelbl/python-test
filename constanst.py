@@ -1,3 +1,17 @@
+ACK_start_byte = 222 # 0xDE
+state_start_byte = 0
+state_output = 1
+state_checksum =2
+start_byte = 253 # 0xfd
+
+
+payload = [1,8,2]
+command_ıd = 0
+BTL_LENGHT=5
+ACK_CRC =[31,27]
+RJT_CRC =[66,173]
+
+
 """
         CRC-16-CCITT Algorithm
         Parameters
@@ -10,7 +24,6 @@
             (e.g)
             crc = 0xc0c1 -> [0xc1, 0xc0]
     """
-arr2=[76,233]
 def crc16_generator(data):
     
     data = bytearray(data)
@@ -27,18 +40,8 @@ def crc16_generator(data):
     #print("Generated CRC", (crc,), (hex(crc),))
 
     if crc > 255:
-        hexstr = hex(crc)
-        x, y = int(hexstr[2:4], 16), int(hexstr[4:6], 16)
+        hex_str = hex(crc)
+        x, y = int(hex_str[2:4], 16), int(hex_str[4:6], 16)
         arr = [x, y]
         #arr = [hexstr[2:4],hexstr[4:6]]
         return arr
-
-    """"
-    arr = [crc]
-    print("Must send this list to receiever", arr)
-    print( )
-    return arr"""""
-
-x = crc16_generator([253, 0, 0, 4, 1, 8, 2, 17])
-print(x,"")
-

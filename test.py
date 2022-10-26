@@ -1,52 +1,51 @@
 from ast import match_case
 import serial
+import workk
+port='COM9'
+ser=serial.Serial(port, baudrate=115200,timeout=5)
 
-start_byte = 0xFD
-device_ıd = 0
-command_ıd = 0
-packet_no = 0
-packet_size =0
-payload = [1,8,2,17]
+packet_state= workk.state_start_byte
 
-
-packet_state= start_byte
-device_ıd= device_ıd
-def data_process(value,start_byte):
-    byte_array=[]
+def ACK_process(answer):
     global packet_state
-    global packet_flag
-    global n_flag
-    global n_flag2
-
+ 
     match packet_state:
 
-        case start_byte:
-            byte_array.append(start_byte)
-            packet_state = device_ıd
+        case workk.state_start_byte:
+            if answer[workk.state_start_byte] == workk.start_byte:
+                packet_state = workk.state_checksum
+  
 
-        case workk.device_ıd:
-            device_ıd = i
-            byte_array.append(device_ıd)
-            packet_state = workk.command_ıd
+        case workk.state_checksum:
+            checksum_index = len(answer)-1
 
-        case workk.command_ıd:
-            byte_array.append(workk.command_ıd) #arraye work.py deki command ıd değeri eklenmeyebilir.    
-            packet_state = workk.packet_no # bu kısımda workteki değeri alması hatalı
-        
-        case workk.packet_no: 
-            byte_array.append()
-            packet_state = workk.packet_size
-
-        case workk.packet_size:
-            packet_size = workk.payload
-
-        case workk.payload:
-            byte_array = byte_array + workk.payload    
+            if answer[checksum_index] == workk.ACK_CRC:
+                ACK_state_flag = 1
             
+            elif answer[checksum_index] == workk.RJT_CRC:
+                RJT_state_flag = 1
 
-          
-for i in range(15):
-    print(device_ıd,"deviceID")
-    data_process(i,packet_state)
-    device_ıd += 1
+            else:
+                print("TMT")    
+        case workk.state_output:
+            if ACK_state_flag:
+                print("ack")
+            elif RJT_state_flag:
+                print("rjt")    
 
+           # if ACK_flag and answer[checksum_index] == workk.crc16_generator(answer):
+            
+                                       
+#main         
+
+if(ser.in_waiting() == workk.BTL_LENGHT):
+    read_btl = ser.read(workk.BTL_LENGHT)
+    loop=0
+    while(workk.loop >= loop):
+        ACK_process(read_btl)
+        loop += 1
+    exit()
+    
+
+
+    

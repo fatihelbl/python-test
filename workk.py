@@ -1,5 +1,6 @@
 
 state_start_byte = 0
+state_output = 1
 state_checksum =2
 start_byte = 253
 device_ıd = 0

@@ -1,17 +1,9 @@
-import workk
-import serial
-port='COM9'
-ser=serial.Serial(port, baudrate=115200,timeout=5)
-array = [1,2,3]
-arr = [4,5]
-array = array + arr
-#print(array)
-test= workk.state_start_byte
-match test:
+crc=2020
 
-    case workk.state_start_byte:
-        print("oldu")
-        array = array + workk.payload
-        print(array)
-        
-      
+if crc > 255:
+        hex_str = '{:04x}'.format(crc)
+        print(hex_str)
+        x, y = int(hex_str[0:2], 16), int(hex_str[2:4], 16)
+        arr = [x, y]
+        #arr = [hexstr[2:4],hexstr[4:6]]
+        print(arr)

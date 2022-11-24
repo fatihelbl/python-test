@@ -45,17 +45,15 @@ def ACK_process(answer):
         case constanst.state_start_byte:
             if answer[constanst.state_start_byte] == constanst.start_byte:
                 packet_state = constanst.state_checksum
-  
-
         case constanst.state_checksum:
             checksum_index = len(answer)-1
 
             if answer[checksum_index] == constanst.ACK_CRC:
                 ACK_state_flag = 1
-            
+                packet_state = constanst.state_output
             elif answer[checksum_index] == constanst.RJT_CRC:
                 RJT_state_flag = 1
-
+                packet_state = constanst.state_output
             else:
                 print("TMT")    
         case constanst.state_output:
@@ -212,6 +210,8 @@ for id in range(15):
             hex_data = parse(line)
             print(hex_data,"hex_data")
             create_packet(id,hex_data,lines_count)
+
+            
 """""            
 
 

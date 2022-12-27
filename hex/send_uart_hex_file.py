@@ -42,8 +42,8 @@ def ACK_process(answer):
             elif RJT_state_flag:
                 print("rjt")    
 
-def send_version(device_id,packet_size,hex_data,packet_no):
-    byte=[constants.start_byte ]
+def send_version(device_id,packet_size,packet_no):
+    byte=[constants.btl_start_byte ]
     crc_array =[] 
     print(byte,"start")
     byte.append(device_id)
@@ -51,15 +51,15 @@ def send_version(device_id,packet_size,hex_data,packet_no):
     byte.append(constants.command_ıd)
     byte.append(packet_no)
     byte.append(packet_size)
-    #byte= byte+ constanst.payload  # 1.8.2 17
-    byte= byte+ hex_data
-    #print(byte,"ack kısmı byte")
+    byte= byte+ constants.payload  # 1.8.2 17
+    #byte= byte+ hex_data
+    print(byte,"ack kısmı byte")
     #byte.append(packet_size)
     #print(byte,"packet SİZE")
     crc_array = crc.crc16_generator(byte)        
     byte = byte +crc_array
     print(byte,"son")
-    #!ser.write(byte)                
+    ser.write(byte)                
 
 def read_ack():  
     time.sleep(0.5)    
@@ -69,7 +69,7 @@ def read_ack():
         while(constants.loop >= loop):
             ACK_process(read_btl)
             loop += 1
-    exit()      
+         
 
     
 
@@ -187,53 +187,22 @@ hex_data = []
 f = open('hex_file.hex', 'rb')
 lines = f.readlines()
 packet_no = 0
+a=0
+ACK_state_flag=0
 for device_id in range(15):    
-    send_version(id,lines_count,hex_data)
-    read_ack()
-    if ACK_state_flag:
+    
+    if(device_id==5):
+        send_version(device_id,a,packet_no)
+        read_ack()
+        ACK_state_flag=1    
+    if (ACK_state_flag):
         for line in lines :       
             line = line.decode()
             hex_data = parse(line)
             hex_data_all = hex_data_all + hex_data  
             packet_no += 1
-    lines_count = len(hex_data_all)              
-    print(hex_data_all,"hex datası")
-    send_btl_protocol(device_id,lines_count,hex_data_all,packet_no)
-
+        lines_count = len(hex_data_all)              
+        print(hex_data_all,"hex datası")
+        send_btl_protocol(device_id,lines_count,hex_data_all,packet_no)
+        ACK_state_flag=0
     
-'''for line in lines :       
-            line = line.decode()
-            hex_data = parse(line)
-            hex_data_all = hex_data_all + hex_data  
-            packet_no += 1
-lines_count = len(hex_data_all)              
-print(hex_data_all,"hex datası")
-send_btl_protocol(device_id,lines_count,hex_data_all,packet_no)
-'''
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-"""""
-for id in range(15):    
-    send_version(id,lines_count,hex_data)
-    read_ack()
-    if ACK_state_flag:
-        for line in lines :        
-            line = line.decode()
-            hex_data = parse(line)
-            print(hex_data,"hex_data")
-            create_packet(id,hex_data,lines_count)
-
-            
-"""""     
